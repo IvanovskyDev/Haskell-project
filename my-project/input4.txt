@@ -1,0 +1,3 @@
+H eps A
+A a S
+S eps X

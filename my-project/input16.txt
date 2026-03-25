@@ -1,0 +1,4 @@
+H a A
+H a B
+A b S
+B c S
