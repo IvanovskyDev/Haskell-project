@@ -4,7 +4,7 @@ module Output
     ) where
 
 import Types
-import Data.List (intercalate) -- 3. понять что это делает
+import Data.List (intercalate)
 
 -- грамматика в строку
 formatGrammar :: Grammar -> String
