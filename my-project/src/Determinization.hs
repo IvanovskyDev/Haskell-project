@@ -15,7 +15,7 @@ isDetermin nka = noEps && all (\(s,a) -> length(transFrom s a)<=1) pairs
           transFrom s a = [t | (f,Term b,t) <- trans, f==s,b==a]
 
 
--- один шаг eps-замыкания -- 2. Начиная отсюда, еще раз разобраться
+-- один шаг eps-замыкания
 epsStep :: [State] -> [(State, Terminal, State)] -> [State]
 epsStep xs trans = nub(xs ++ [t | s <- xs, (f, Eps, t) <- trans, f==s])
 
