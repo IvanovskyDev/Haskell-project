@@ -3,18 +3,18 @@ module Types where
 
 -- нетерминал, "S", "AB"
 newtype State = State { unState :: String }
-    deriving(Eq,Ord,Show)
+    deriving(Ord,Show)
 
 -- терминал
 data Terminal = Term Char | Eps 
-    deriving(Eq,Ord,Show)
+    deriving(Ord,Show)
 
 -- переход
 data Transition = Transition {
     from  :: State,
     onTerm:: Terminal,
     to    :: State
-    } deriving(Eq,Ord,Show)
+    } deriving(Ord,Show)
 
 
 data NKA = NKA {
