@@ -6,7 +6,7 @@ module Determinization(
 import Types
 import Data.List(nub)
 
--- если нет переходов по eps и по каждому символу не более одного перехода => детерм.
+-- если нет переходов по eps и по каждому символу не более одного перехода => детерм
 isDetermin :: NKA -> Bool
 isDetermin nka = noEps && all (\(s,a) -> length(transFrom s a)<=1) pairs
     where trans = nkaTransitions nka
