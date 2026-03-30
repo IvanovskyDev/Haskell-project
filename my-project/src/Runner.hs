@@ -29,7 +29,7 @@ process nka typ = do
     putStrLn "\nРегулярная грамматика:"
     putStrLn $ formatGrammar (selectGrammar nka typ)
     if isDetermin nka
-        then putStrLn "\nАвтомат детерминированный, ДКА не требуется."
+        then putStrLn "\nАвтомат уже детерминирован"
         else do
             putStrLn "\nЭквивалентный детерминированный автомат:"
             putStrLn $ formDKA (determinize nka)
