@@ -4,7 +4,7 @@ module Determinization(
 ) where
 
 import Types
-import Data.List(nub)
+import Data.List(nub,sort)
 
 -- если нет переходов по eps и по каждому символу не более одного перехода => детерм
 isDetermin :: NKA -> Bool
@@ -17,26 +17,26 @@ isDetermin nka = noEps && all (\(s,a) -> length(transFrom s a)<=1) pairs
 
 -- один шаг eps-замыкания
 epsStep :: [State] -> [(State, Terminal, State)] -> [State]
-epsStep xs trans = nub(xs ++ [t | s <- xs, (f, Eps, t) <- trans, f==s])
+epsStep xs trans = sort(nub(xs ++ [t | s <- xs, (f, Eps, t) <- trans, f==s]))
 
 -- полное eps-замыкание
 epsClosure :: [State] -> [(State, Terminal, State)] -> [State]
-epsClosure states trans = closure states
+epsClosure states trans = closure (sort(nub states))
     where closure xs = if length next == length xs
                        then nub $ xs
                        else closure next
                     where
-                        next = epsStep xs trans
+                        next = sort(nub(epsStep xs trans))
 
 
 -- переход из множества по символу без eps-замыкания
 move :: [State] -> Char -> [(State, Terminal, State)] -> [State]
-move states a trans = nub [t | s <- states, (f,Term b,t) <- trans, f==s, b==a]
+move states a trans = sort(nub [t | s <- states, (f,Term b,t) <- trans, f==s, b==a])
 
 
 -- все множества, достижимые из данного множества по одному символу
 nextStates :: [State] -> [(State, Terminal, State)] -> [Char] -> [[State]]
-nextStates s trans alphabet = [epsClosure(move s a trans) trans | a <- alphabet]
+nextStates s trans alphabet = [sort(epsClosure(move s a trans) trans) | a <- alphabet]
 
 -- построение всех достижимых множеств
 buildStates :: [[State]] -> [[State]] -> [(State, Terminal, State)] -> [Char] -> [[State]]
@@ -49,7 +49,7 @@ buildStates (s:ss) visited trans alph
 -- имя множества состояний
 setName :: [State] -> State
 setName [] = State "∅"
-setName ss = State (concatMap unState (nub ss))
+setName ss = State (concatMap unState (sort(nub ss)))
 
 -- детерминизация
 determinize :: NKA -> DKA
@@ -63,6 +63,6 @@ determinize nka = DKA{
     where
         alphabet = nkaTerminals nka
         trans = nkaTransitions nka
-        startSet = epsClosure [nkaStart nka] trans
+        startSet = sort(epsClosure [nkaStart nka] trans)
         allSets = buildStates [startSet] [] trans alphabet
-        nextSet s a = epsClosure (move s a trans) trans
+        nextSet s a = sort(epsClosure (move s a trans) trans)
