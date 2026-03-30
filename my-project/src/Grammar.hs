@@ -28,7 +28,7 @@ leftGrammar :: NKA -> Grammar
 leftGrammar nka = Grammar{ 
     grammarNonTerminals = nkaStates nka,
     grammarTerminals    = nkaTerminals nka,
-    grammarStart        = nkaStart nka,
+    grammarStart        = head (nkaFinal nka),
     grammarRules        = groupRules (nkaStates nka) rules,
     grammarLeft         = True
     }
