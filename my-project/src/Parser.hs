@@ -27,14 +27,14 @@ parseLine line
 build :: [String] -> Either String [Transition]
 build [a,b,c]
     | length a /= 1 || length c /= 1 = Left "состояния должны быть из одной буквы"
-    | b /= "eps" && length b /= 1 = Left "терминал должен быть одним символом или eps"
+    | b == "eps" = Right [Transition (State a) Eps (State c)]
+    | length b /= 1 = Left "терминал должен быть одним символом или eps"
     | not (isUpper f) = Left ("состояние " ++ a ++ " должно быть заглавной латинской буквой")
     | not (isUpper t) = Left ("состояние " ++ c ++ " должно быть заглавной латинской буквой")
-    | b == "eps" = Right [Transition (State [f]) Eps (State [t])]
     | not (isLower s) = Left ("терминал " ++ b ++ " должен быть строчной латинской буквой")
     | otherwise = Right [Transition (State [f]) (Term s) (State [t])]
     where
         f = head a
-        s = if b == "eps" then ' ' else head b
+        s = head b
         t = head c
 build _ = Left "неверный формат строки"
