@@ -21,23 +21,25 @@ makeRightRules :: [(State, Terminal, State)] -> [(State, Rules)]
 makeRightRules [] = []
 makeRightRules ((f,s,t):xs) = case s of
     Term c -> (f, RightGrammar c t) : makeRightRules xs -- A->aB
-    Eps    -> (f, Epsilon)          : makeRightRules xs -- A->eps
+    Eps    -> (f, Epsilon) : makeRightRules xs -- A->eps
 
 
 leftGrammar :: NKA -> Grammar
 leftGrammar nka = Grammar{ 
     grammarNonTerminals = nkaStates nka,
     grammarTerminals    = nkaTerminals nka,
-    grammarStart        = head (nkaFinal nka),
-    grammarRules        = groupRules (nkaStates nka) (makeLeftRules (nkaTransitions nka) ++ [(nkaStart nka, Epsilon)]),
+    grammarStart        = nkaStart nka,
+    grammarRules        = groupRules (nkaStates nka) rules,
     grammarLeft         = True
     }
+    where
+      rules = makeLeftRules (nkaTransitions nka) ++ [(f,Epsilon)| f <- nkaFinal nka]
 
 makeLeftRules :: [(State, Terminal, State)] -> [(State, Rules)]
 makeLeftRules [] = []
 makeLeftRules ((f,s,t):xs) = case s of
     Term c -> (t, LeftGrammar f c) : makeLeftRules xs -- A->Ba
-    Eps    -> (t, Epsilon)          : makeLeftRules xs --A->eps
+    Eps    -> (t, Epsilon) : makeLeftRules xs --A->eps
 
 groupRules :: [State] -> [(State, Rules)] -> [(State, [Rules])]
 groupRules [] _ = []
