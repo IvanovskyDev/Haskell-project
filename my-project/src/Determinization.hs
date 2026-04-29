@@ -6,7 +6,7 @@ module Determinization(
 import Types
 import Data.List(nub,sort)
 
--- если нет переходов по eps и по каждому символу не более одного перехода => детерм
+-- если нет переходов по eps и по кажд символу не более одного перехода=>детерм
 isDetermin :: NKA -> Bool
 isDetermin nka = noEps && all (\(s,a) -> length(transFrom s a)<=1) pairs
     where trans = nkaTransitions nka
@@ -31,12 +31,14 @@ epsClosure states trans = closure (sort(nub states))
 
 -- переход из множества по символу без eps-замыкания
 move :: [State] -> Char -> [(State, Terminal, State)] -> [State]
-move states a trans = sort(nub [t | s <- states, (f,Term b,t) <- trans, f==s, b==a])
+move states a trans = 
+    sort(nub [t | s <- states, (f,Term b,t) <- trans, f==s, b==a])
 
 
 -- все множества, достижимые из данного множества по одному символу
 nextStates :: [State] -> [(State, Terminal, State)] -> [Char] -> [[State]]
-nextStates s trans alphabet = [sort(epsClosure(move s a trans) trans) | a<-alphabet]
+nextStates s trans alphabet = 
+    [sort(epsClosure(move s a trans) trans) | a<-alphabet]
 
 -- построение всех достижимых множеств
 buildStates :: [[State]] 
@@ -47,7 +49,8 @@ buildStates :: [[State]]
 buildStates [] visited _ _ = visited
 buildStates (s:ss) visited trans alph
     | elem s visited = buildStates ss visited trans alph
-    | otherwise = buildStates (ss++nextStates s trans alph) (visited++[s]) trans alph
+    | otherwise = 
+        buildStates (ss++nextStates s trans alph) (visited++[s]) trans alph
 
 
 -- имя множества состояний

@@ -18,7 +18,8 @@ parseTransitions (x:xs) = do
 parseLine :: String -> Either String [Transition]
 parseLine line
     | all isSpace line = Right []
-    | length ws/=3   = Left "строка должна содержать ровно три элемента"
+    | length ws/=3   = 
+          Left "строка должна содержать ровно три элемента"
     | otherwise        = build ws
     where
         ws = words line

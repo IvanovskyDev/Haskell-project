@@ -2,6 +2,7 @@ module Compare (compareOutputs) where
 
 import Data.List (sort, intercalate, isInfixOf)
 
+
 compareOutputs :: String -> String -> [String]
 compareOutputs actual expected =
     let a = filter (not . null) (lines actual)
@@ -11,6 +12,7 @@ compareOutputs actual expected =
 
 compareLines :: [String] -> [String] -> [String]
 compareLines [] [] = []
+
 compareLines [] (e:es) =
     ("Нет строки: " ++ e) : compareLines [] es
 
@@ -28,7 +30,9 @@ compareLines (a:as) (e:es)
 
     | otherwise =
         ("Несовпадение:\n  ожидалось: " ++ e ++
-         "\n  получено:  " ++ a) : compareLines as es
+         "\n  получено:  " ++ a)
+        : compareLines as es
+
 
 
 isGrammarRule :: String -> Bool
@@ -38,13 +42,15 @@ isDkaTransition :: String -> Bool
 isDkaTransition s = "--" `isInfixOf` s && "-->" `isInfixOf` s
 
 
+
+
 compareGrammarRule :: String -> String -> [String]
 compareGrammarRule a e =
     let (al, ar) = parseRule a
         (el, er) = parseRule e
 
-        aAlts = sort (splitOn "|" ar)
-        eAlts = sort (splitOn "|" er)
+        aAlts = sort (splitOn '|' ar)
+        eAlts = sort (splitOn '|' er)
 
         err1 =
             if al /= el
@@ -64,17 +70,10 @@ compareGrammarRule a e =
 parseRule :: String -> (String, String)
 parseRule s =
     case break (== '=') s of
-        (l, '=':r) -> (l, trim (initSafe r))
+        (l, '=':r) -> (trim l, trim r)
         _          -> ("", "")
 
 
-initSafe :: String -> String
-initSafe [] = []
-initSafe xs = xs
-
-
-trim :: String -> String
-trim = reverse . dropWhile (== ' ') . reverse . dropWhile (== ' ')
 
 
 compareDkaTransition :: String -> String -> [String]
@@ -85,27 +84,16 @@ compareDkaTransition a e
          "\n  получено:  " ++ a]
 
 
-splitOn :: Eq a => [a] -> [a] -> [[a]]
-splitOn delim xs = go xs
-  where
-    go [] = [[]]
-    go s =
-        let (pre, rest) = breakList delim s
-        in pre : case rest of
-            [] -> []
-            _  -> go (drop (length delim) rest)
+
+splitOn :: Char -> String -> [String]
+splitOn _ [] = []
+splitOn c s =
+    let (p, r) = break (== c) s
+    in p : case r of
+        []      -> []
+        (_:rs)  -> splitOn c rs
 
 
-breakList :: Eq a => [a] -> [a] -> ([a], [a])
-breakList _ [] = ([], [])
-breakList delim xs@(y:ys)
-    | delim `isPrefixOf` xs = ([], xs)
-    | otherwise =
-        let (p, r) = breakList delim ys
-        in (y:p, r)
-
-
-isPrefixOf :: Eq a => [a] -> [a] -> Bool
-isPrefixOf [] _ = True
-isPrefixOf _ [] = False
-isPrefixOf (x:xs) (y:ys) = x == y && isPrefixOf xs ys
+trim :: String -> String
+trim = reverse . dropWhile (== ' ')
+     . reverse . dropWhile (== ' ')

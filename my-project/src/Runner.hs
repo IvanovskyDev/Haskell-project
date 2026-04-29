@@ -6,9 +6,12 @@ import Determinization (determinize, isDetermin)
 import Output (formatGrammar, formDKA)
 import AutomatShow (viewNKA, viewDKA)
 import Validate (validateNKA)
+import Compare (compareOutputs)
 import Types
 
 import Data.List (nub)
+import Control.Exception (try, IOException)
+--import System.IO (readFile)
 
 
 run :: IO ()
@@ -16,14 +19,29 @@ run = do
     putStrLn "Введите имя файла:"
     path <- getLine
 
-    content <- readFile path
+    contentResult <- safeReadFile path
 
-    case parseTransitions (lines content) of
-        Left err -> do
-            putStrLn ("Ошибка парсинга: " ++ err)
+    case contentResult of
+        Left err -> putStrLn err
 
-        Right trans -> do
-            runPipeline path trans
+        Right content ->
+            case parseTransitions (lines content) of
+
+                Left err ->
+                    putStrLn ("Ошибка парсинга: " ++ err)
+
+                Right trans ->
+                    runPipeline path trans
+
+
+
+safeReadFile :: String -> IO (Either String String)
+safeReadFile path = do
+    result <- try (readFile path) :: IO (Either IOException String)
+    case result of
+        Left _  -> return (Left "Ошибка: файл не существует")
+        Right c -> return (Right c)
+
 
 
 runPipeline :: String -> [Transition] -> IO ()
@@ -31,20 +49,22 @@ runPipeline inputFile trans = do
 
     let nka = buildNKA trans
 
-    -- Валидация автомата
-    case validateNKA nka of
-        Left errs -> do
-            putStrLn "Ошибки автомата:"
-            mapM_ putStrLn errs
+    if null (nkaTransitions nka)
+        then putStrLn "Ошибка: автомат не содержит переходов"
+        else do
+            case validateNKA nka of
 
-        Right _ -> do
-            processValidAutomaton inputFile nka
+                Left errs -> do
+                    putStrLn "Ошибки автомата:"
+                    mapM_ putStrLn errs
+
+                Right _ ->
+                    processAutomaton inputFile nka
 
 
--- ОБРАБОТКА ВАЛИДНОГО АВТОМАТА
 
-processValidAutomaton :: String -> NKA -> IO ()
-processValidAutomaton inputFile nka = do
+processAutomaton :: String -> NKA -> IO ()
+processAutomaton inputFile nka = do
 
     putStrLn "\nВыберите тип грамматики:"
     putStrLn "0 - праволинейная"
@@ -52,64 +72,97 @@ processValidAutomaton inputFile nka = do
 
     typ <- getLine
 
-    let grammar = selectGrammar nka typ
+    case typ of
+        "0" -> runGrammar inputFile nka False
+        "1" -> runGrammar inputFile nka True
+        _   -> putStrLn "Ошибка: нужно 0 или 1"
 
-    putStrLn "\nРегулярная грамматика "
+
+
+runGrammar :: String -> NKA -> Bool -> IO ()
+runGrammar inputFile nka isLeft = do
+
+    let grammar =
+            if isLeft
+                then leftGrammar nka
+                else rightGrammar nka
+
+    putStrLn "\nРегулярная грамматика"
     putStrLn (formatGrammar grammar)
 
-    -- Проверка детерминизма
+    let mode = if isLeft then 1 else 0
+
+    let outFile = makeOutputFile inputFile mode
+    let expFile = makeExceptionFile inputFile mode
+
     if isDetermin nka
-        then handleDeterministic inputFile nka grammar
-        else handleNonDeterministic inputFile nka grammar
+        then do
+            deterministic nka grammar outFile expFile
+        else do
+            nonDeterministic nka grammar outFile expFile
 
 
--- ДЕТЕРМИНИРОВАННЫЙ АВТОМАТ
-handleDeterministic :: String -> NKA -> Grammar -> IO ()
-handleDeterministic inputFile nka grammar = do
+
+deterministic :: NKA -> Grammar -> String -> String -> IO ()
+deterministic nka grammar outFile expFile = do
 
     putStrLn "\nАвтомат уже детерминирован"
-
-    let outFile = makeOutputFile inputFile
 
     writeFile outFile (formatGrammar grammar)
 
     putStrLn ("Результат записан в " ++ outFile)
+    putStrLn ("Ожидаемый результат: " ++ expFile)
 
     viewNKA nka
 
+    compareFiles outFile expFile
 
 
--- НЕДЕТЕРМИНИРОВАННЫЙ АВТОМАТ
-handleNonDeterministic :: String -> NKA -> Grammar -> IO ()
-handleNonDeterministic inputFile nka grammar = do
+
+nonDeterministic :: NKA -> Grammar -> String -> String -> IO ()
+nonDeterministic nka grammar outFile expFile = do
 
     let dka = determinize nka
-    let outFile = makeOutputFile inputFile
 
     putStrLn "\nДетерминированный автомат"
     putStrLn (formDKA dka)
 
-    writeFile
-        outFile
+    writeFile outFile
         ( formatGrammar grammar
           ++ "\n\n"
           ++ formDKA dka )
 
     putStrLn ("Результат записан в " ++ outFile)
+    putStrLn ("Ожидаемый результат: " ++ expFile)
 
     viewDKA dka
 
-
--- ВЫБОР ГРАММАТИКИ
-selectGrammar :: NKA -> String -> Grammar
-selectGrammar nka typ =
-    case typ of
-        "1" -> leftGrammar nka
-        _   -> rightGrammar nka
+    compareFiles outFile expFile
 
 
+compareFiles :: String -> String -> IO ()
+compareFiles actualFile expectedFile = do
+    actualResult <- try (readFile actualFile) :: IO (Either IOException String)
+    expectedResult <- try (readFile expectedFile) :: IO (Either IOException String)
 
--- ПОСТРОЕНИЕ НКА
+    case (actualResult, expectedResult) of
+
+        (Right actual, Right expected) -> do
+            let diff = compareOutputs actual expected
+
+            if null diff
+                then putStrLn "Сравнение: ВЕРНО"
+                else do
+                    putStrLn "Сравнение: НЕВЕРНО"
+                    mapM_ putStrLn diff
+
+        (Left _, _) ->
+            putStrLn "Ошибка: не найден output файл"
+
+        (_, Left _) ->
+            putStrLn "Ошибка: не найден exception файл"
+
+
 buildNKA :: [Transition] -> NKA
 buildNKA trans =
     NKA
@@ -132,7 +185,16 @@ buildNKA trans =
         (from t, onTerm t, to t)
 
 
-makeOutputFile :: String -> String
-makeOutputFile input =
+
+makeOutputFile :: String -> Int -> String
+makeOutputFile input mode =
     let (name, _) = break (== '.') input
-    in name ++ "_output.txt"
+        base = filter (`elem` ['0'..'9']) name
+    in "output_" ++ base ++ "_" ++ show mode ++ ".txt"
+
+
+makeExceptionFile :: String -> Int -> String
+makeExceptionFile input mode =
+    let (name, _) = break (== '.') input
+        base = filter (`elem` ['0'..'9']) name
+    in "exception_" ++ base ++ "_" ++ show mode ++ ".txt"

@@ -4,9 +4,8 @@ import Graphics.Gloss
 import Types
 import Data.List(intercalate)
 
-------------------------------------------------
--- параметры
-------------------------------------------------
+
+-- ПАРАМЕТРЫ
 
 radius :: Float
 radius = 300
@@ -14,78 +13,81 @@ radius = 300
 nodeR :: Float
 nodeR = 45
 
+-- отступ подписей переходов
 labelLiftBase :: Float
 labelLiftBase = 85
 
+-- количество шагов для построения кривой Безье
 curveSteps :: Int
 curveSteps = 50
 
-------------------------------------------------
--- отображение
-------------------------------------------------
 
+-- ФУНКЦИИ ОТОБРАЖЕНИЯ
+-- отображение НКА в отдельном окне
 viewNKA :: NKA -> IO ()
 viewNKA nka =
   display (InWindow "NKA" (1400,1000) (100,100))
           white
           (drawNKA nka)
 
+-- отображение ДКА в отдельном окне
 viewDKA :: DKA -> IO ()
 viewDKA dka =
   display (InWindow "DKA" (1400,1000) (100,100))
           (makeColorI 248 249 252 255)
           (drawDKA dka)
 
-------------------------------------------------
--- layout
-------------------------------------------------
 
+
+-- вычисляет координаты состояния на окружности
 layoutCircular :: [State] -> State -> Point
 layoutCircular states s =
  case lookup s coords of
-   Just p -> p
+   Just p  -> p
    Nothing -> (0,0)
  where
    n = max 1 (length states)
-   angles = [2*pi*fromIntegral i / fromIntegral n | i <- [0..n-1]]
+
+   angles =
+     [2*pi*fromIntegral i / fromIntegral n | i <- [0..n-1]]
 
    coords =
      zip states
-       [ (radius*cos a, radius*sin a)
+       [ (radius * cos a, radius * sin a)
        | a <- angles ]
 
-------------------------------------------------
--- labels
-------------------------------------------------
 
+
+-- преобразует список символов в строку с разделителями
 labels :: [Char] -> String
 labels = intercalate "," . map (:[])
 
-------------------------------------------------
--- Bézier
-------------------------------------------------
+showTerm :: Terminal -> String
+showTerm (Term c) = [c]
+showTerm Eps      = "ε"
 
+-- строит квадратичную кривую Безье между точками
 bezier3 :: Point -> Point -> Point -> Int -> [Point]
 bezier3 p0 p1 p2 steps =
- let lerp (x1,y1) (x2,y2) t =
-       (x1 + (x2-x1)*t, y1 + (y2-y1)*t)
+    let lerp (x1,y1) (x2,y2) t =
+            (x1 + (x2-x1)*t, y1 + (y2-y1)*t)
 
-     go i
-       | i > steps = []
-       | otherwise =
-           let t = fromIntegral i / fromIntegral steps
-               a = lerp p0 p1 t
-               b = lerp p1 p2 t
-           in lerp a b t : go (i+1)
+        point t =
+            let a = lerp p0 p1 t
+                b = lerp p1 p2 t
+            in lerp a b t
 
- in go 0
+        ts = [ fromIntegral i / fromIntegral steps
+             | i <- [0..steps] ]
 
+    in map point ts
+
+-- возвращает середину списка точек
 midPoint :: [Point] -> Point
 midPoint pts = pts !! (length pts `div` 2)
 
-------------------------------------------------
--- curve (Graphviz-style stable)
-------------------------------------------------
+
+-- смещает подпись, чтобы она не накладывалась на состояния
 labelOffset :: Point -> Point -> Float -> Point
 labelOffset (cx,cy) (lx,ly) k =
  let dx = lx - cx
@@ -96,23 +98,11 @@ labelOffset (cx,cy) (lx,ly) k =
  in (lx + nx * k, ly + ny * k)
 
 
-clampToCircle :: Point -> Point -> Point -> Point
-clampToCircle (x1,y1) (x2,y2) p =
- let dx = x2 - x1
-     dy = y2 - y1
-     len = sqrt (dx*dx + dy*dy)
 
-     ux = dx / max 1 len
-     uy = dy / max 1 len
-
- in ( fst p + ux * nodeR
-    , snd p + uy * nodeR )
-
-
+-- строит кривую перехода между двумя состояниями
 curve :: Point -> Point -> Float -> Float -> ([Point], Point)
 curve (x1,y1) (x2,y2) lift sign =
- let
-     dx = x2 - x1
+ let dx = x2 - x1
      dy = y2 - y1
      len = sqrt (dx*dx + dy*dy)
 
@@ -130,7 +120,6 @@ curve (x1,y1) (x2,y2) lift sign =
      start = (x1 + ux * edgePadding, y1 + uy * edgePadding)
      endp  = (x2 - ux * edgePadding, y2 - uy * edgePadding)
 
-     -- 🔥 ВАЖНО: выталкиваем контрольную точку дальше наружу
      cx = mx + nx * (lift + nodeR) * sign
      cy = my + ny * (lift + nodeR) * sign
 
@@ -138,10 +127,9 @@ curve (x1,y1) (x2,y2) lift sign =
 
  in (pts,(cx,cy))
 
-------------------------------------------------
--- self-loop
-------------------------------------------------
 
+
+-- рисует переход состояния в самого себя
 selfLoop :: Point -> String -> Picture
 selfLoop (x,y) lab =
  let r = nodeR + 25
@@ -169,10 +157,9 @@ selfLoop (x,y) lab =
       Text lab
   ]
 
-------------------------------------------------
--- states
-------------------------------------------------
 
+-- рисует одно состояние автомата
+drawState :: [State] -> (State -> Point) -> State -> Picture
 drawState finals layout s =
  let (x,y) = layout s
      name = unState s
@@ -180,13 +167,11 @@ drawState finals layout s =
 
      fill
        | name == "∅" = greyN 0.85
-       | s `elem` finals  = makeColorI 193 230 190 255
-       | otherwise        = makeColorI 187 222 251 255
+       | s `elem` finals = makeColorI 193 230 190 255
+       | otherwise = makeColorI 187 222 251 255
 
-     -- 🔥 адаптивный масштаб текста
      sc = max 0.12 (0.25 - fromIntegral (len - 1) * 0.03)
 
-     -- 🔥 более точное центрирование по длине строки
      tx = x - 6 * fromIntegral len
      ty = y - 10
 
@@ -205,17 +190,15 @@ drawState finals layout s =
            circle (nodeR - 8)
       else Blank
 
-  -- 🔥 текст теперь адаптивный и не вылезает за круг
   , Translate tx ty $
       Scale sc sc $
       Color black $
       Text name
   ]
 
-------------------------------------------------
--- start arrow
-------------------------------------------------
 
+-- рисует стрелку к начальному состоянию
+drawStart :: State -> (State -> Point) -> Picture
 drawStart st layout =
  let (x,y) = layout st
 
@@ -235,6 +218,7 @@ drawStart st layout =
   ]
 
 
+-- рисует наконечник стрелки на переходе
 arrowHead :: [Point] -> Picture
 arrowHead pts =
  let (x1,y1) = last (init pts)
@@ -253,10 +237,9 @@ arrowHead pts =
       , (x2 - 18*ux + 7*uy, y2 - 18*uy - 7*ux)
       , (x2 - 18*ux - 7*uy, y2 - 18*uy + 7*ux)
       ]
-------------------------------------------------
--- avoidance (no overlap with states)
-------------------------------------------------
 
+
+-- корректирует положение подписи, чтобы избежать пересечений
 avoidStates :: Point -> [State] -> (State -> Point) -> Point
 avoidStates (x,y) states layout =
  foldr push (x,y) states
@@ -271,10 +254,11 @@ avoidStates (x,y) states layout =
         then (sx + dx/d * minD, sy + dy/d * minD)
         else acc
 
-------------------------------------------------
--- transitions DKA (stable Graphviz-like)
-------------------------------------------------
 
+-- рисует все переходы детерминированного автомата
+drawTransitionsDKA :: [((State, Char), State)]
+                   -> (State -> Point)
+                   -> Picture
 drawTransitionsDKA trans layout =
  Pictures (map draw grouped)
  where
@@ -309,8 +293,8 @@ drawTransitionsDKA trans layout =
 
           (lx,ly) = midPoint pts
 
-          -- 👇 главное улучшение
-          (lx',ly') = labelOffset (cx,cy) (avoidStates (lx,ly) stateList layout) 18
+          (lx',ly') = labelOffset (cx,cy)
+            (avoidStates (lx,ly) stateList layout) 18
 
       in Pictures
         [ Color black $ Line pts
@@ -321,13 +305,11 @@ drawTransitionsDKA trans layout =
             Text (labels labs)
         ]
 
-------------------------------------------------
--- NKA transitions
-------------------------------------------------
 
-showTerm (Term c) = [c]
-showTerm Eps = "ε"
-
+-- рисует переходы недетерминированного автомата
+drawTransitionsNKA :: [(State, Terminal, State)]
+                   -> (State -> Point)
+                   -> Picture
 drawTransitionsNKA trans layout =
  Pictures (map draw grouped)
  where
@@ -356,8 +338,8 @@ drawTransitionsNKA trans layout =
 
           (lx,ly) = midPoint pts
 
-          -- 👇 улучшение такое же
-          (lx',ly') = labelOffset (cx,cy) (avoidStates (lx,ly) stateList layout) 18
+          (lx',ly') = labelOffset (cx,cy)
+            (avoidStates (lx,ly) stateList layout) 18
 
       in Pictures
         [ Color black $ Line pts
@@ -368,10 +350,9 @@ drawTransitionsNKA trans layout =
             Text (concatMap showTerm labs)
         ]
 
-------------------------------------------------
--- full render
-------------------------------------------------
 
+-- рисует детерминированный автомат
+drawDKA :: DKA -> Picture
 drawDKA dka =
  let states = dkaStates dka
      layout = layoutCircular states
@@ -381,6 +362,8 @@ drawDKA dka =
   , drawStart (dkaStart dka) layout
   ]
 
+-- рисует недетерминированный автомат
+drawNKA :: NKA -> Picture
 drawNKA nka =
  let states = nkaStates nka
      layout = layoutCircular states

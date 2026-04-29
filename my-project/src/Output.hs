@@ -9,14 +9,16 @@ import Data.List (intercalate)
 -- грамматика в строку
 formatGrammar :: Grammar -> String
 formatGrammar g =
-    "Нетерминалы: " ++ intercalate "," (map unState (grammarNonTerminals g)) ++ "\n" ++
-    "Терминалы: " ++ intercalate "," (map (:[]) (grammarTerminals g)) ++ "\n\n" ++
-    rulesText (grammarRules g)
+    "Нетерминалы: " ++ intercalate "," (map unState (grammarNonTerminals g)) ++ 
+        "\n" ++
+    "Терминалы: " ++ intercalate "," (map (:[]) (grammarTerminals g)) ++
+        "\n\n" ++ rulesText (grammarRules g)
 
 -- правила в строку
 rulesText :: [(State, [Rules])] -> String
 rulesText [] = ""
-rulesText ((s,rs):xs) = unState s ++ "=" ++ intercalate "|" (map showRule rs) ++ ";\n" ++ rulesText xs
+rulesText ((s,rs):xs) = unState s ++ "=" ++ 
+    intercalate "|" (map showRule rs) ++ ";\n" ++ rulesText xs
 
 showRule :: Rules -> String
 showRule (Terminal a) = [a]
@@ -37,4 +39,5 @@ formDKA dka =
 -- переходы в строку
 transText :: [((State, Char), State)] -> String
 transText [] = ""
-transText (((s,a),t):xs) = unState s ++ " --" ++ [a] ++ "--> " ++ unState t ++ "\n" ++ transText xs
+transText (((s,a),t):xs) = unState s ++ " --" ++ [a] ++ 
+            "--> " ++ unState t ++ "\n" ++ transText xs
