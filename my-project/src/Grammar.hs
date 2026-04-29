@@ -11,7 +11,8 @@ rightGrammar nka = Grammar {
     grammarNonTerminals = nkaStates nka,
     grammarTerminals    = nkaTerminals nka,
     grammarStart        = nkaStart nka,
-    grammarRules        = groupRules (nkaStates nka) (makeRightRules (nkaTransitions nka) ++ epsilonRules),
+    grammarRules        = groupRules (nkaStates nka) (makeRightRules 
+    (nkaTransitions nka) ++ epsilonRules),
     grammarLeft         = False
     }
   where
@@ -21,7 +22,7 @@ makeRightRules :: [(State, Terminal, State)] -> [(State, Rules)]
 makeRightRules [] = []
 makeRightRules ((f,s,t):xs) = case s of
     Term c -> (f, RightGrammar c t) : makeRightRules xs -- A->aB
-    Eps    -> (f, Epsilon) : makeRightRules xs -- A->eps
+    Eps    -> (f, NonTerminal t) : makeRightRules xs -- A->B
 
 
 leftGrammar :: NKA -> Grammar
@@ -39,7 +40,7 @@ makeLeftRules :: [(State, Terminal, State)] -> [(State, Rules)]
 makeLeftRules [] = []
 makeLeftRules ((f,s,t):xs) = case s of
     Term c -> (t, LeftGrammar f c) : makeLeftRules xs -- A->Ba
-    Eps    -> (t, Epsilon) : makeLeftRules xs --A->eps
+    Eps    -> (t, NonTerminal f) : makeLeftRules xs --B->A
 
 groupRules :: [State] -> [(State, Rules)] -> [(State, [Rules])]
 groupRules [] _ = []
@@ -49,5 +50,5 @@ groupRules (s:ss) rules = case collect s rules of
 
 collect :: State -> [(State,Rules)] -> [Rules]
 collect _ [] = []
-collect s ((l,r):xs) | s==l = nub(r : collect s xs)
+collect s ((l,r):xs) | s==l = nub(r:collect s xs)
                      | otherwise = collect s xs

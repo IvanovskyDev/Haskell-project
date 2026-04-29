@@ -2,22 +2,22 @@ module Types where
 
 
 -- нетерминал, "S", "AB"
-newtype State = State { unState :: String }
-    deriving(Ord,Show)
+newtype State = State {unState :: String}
+    deriving(Eq,Ord,Show)
 
 -- терминал
 data Terminal = Term Char | Eps 
-    deriving(Ord,Show)
+    deriving(Eq,Ord,Show)
 
 -- переход
 data Transition = Transition {
     from  :: State,
     onTerm:: Terminal,
     to    :: State
-    } deriving(Ord,Show)
+    } deriving(Eq,Ord,Show)
 
 
-data NKA = NKA {
+data NKA = NKA{
     nkaStates     :: [State],
     nkaTerminals  :: [Char],
     nkaTransitions:: [(State,Terminal,State)],
@@ -26,7 +26,7 @@ data NKA = NKA {
     } deriving(Eq,Show)
 
 
-data DKA = DKA {
+data DKA = DKA{
     dkaStates     :: [State],
     dkaTerminals  :: [Char],
     dkaTransitions:: [((State,Char),State)], -- типо [ключ, значение]
@@ -38,6 +38,7 @@ data DKA = DKA {
 data Rules = Terminal Char
            | RightGrammar Char State
            | LeftGrammar State Char
+           | NonTerminal State
            | Epsilon
             deriving(Eq,Show)
 

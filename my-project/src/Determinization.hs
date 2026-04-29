@@ -36,10 +36,14 @@ move states a trans = sort(nub [t | s <- states, (f,Term b,t) <- trans, f==s, b=
 
 -- все множества, достижимые из данного множества по одному символу
 nextStates :: [State] -> [(State, Terminal, State)] -> [Char] -> [[State]]
-nextStates s trans alphabet = [sort(epsClosure(move s a trans) trans) | a <- alphabet]
+nextStates s trans alphabet = [sort(epsClosure(move s a trans) trans) | a<-alphabet]
 
 -- построение всех достижимых множеств
-buildStates :: [[State]] -> [[State]] -> [(State, Terminal, State)] -> [Char] -> [[State]]
+buildStates :: [[State]] 
+                -> [[State]] 
+                -> [(State, Terminal, State)] 
+                -> [Char] 
+                -> [[State]]
 buildStates [] visited _ _ = visited
 buildStates (s:ss) visited trans alph
     | elem s visited = buildStates ss visited trans alph
@@ -56,7 +60,8 @@ determinize :: NKA -> DKA
 determinize nka = DKA{
     dkaStates      = map setName allSets,
     dkaTerminals   = alphabet,
-    dkaTransitions = concatMap (\s -> map (\a ->((setName s,a),setName(nextSet s a))) alphabet) allSets,
+    dkaTransitions = concatMap (\s -> map 
+    (\a ->((setName s,a),setName(nextSet s a))) alphabet) allSets,
     dkaStart       = setName startSet,
     dkaFinal       = map setName [s | s <- allSets, any (`elem` nkaFinal nka) s]
     }

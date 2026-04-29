@@ -19,10 +19,11 @@ rulesText [] = ""
 rulesText ((s,rs):xs) = unState s ++ "=" ++ intercalate "|" (map showRule rs) ++ ";\n" ++ rulesText xs
 
 showRule :: Rules -> String
-showRule (Terminal a)       = [a]
+showRule (Terminal a) = [a]
 showRule (RightGrammar a s) = [a] ++ unState s
-showRule (LeftGrammar s a)  = unState s ++ [a]
-showRule Epsilon            = "ε"
+showRule (LeftGrammar s a) = unState s ++ [a]
+showRule (NonTerminal s) = unState s
+showRule Epsilon = "ε"
 
 
 -- дка в строку
