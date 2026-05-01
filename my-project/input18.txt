@@ -1,3 +1,0 @@
-H a H
-H a A
-A b S
