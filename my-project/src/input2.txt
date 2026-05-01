@@ -1,4 +1,0 @@
-H a A
-A eps B
-B b S
-H b S
