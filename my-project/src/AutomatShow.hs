@@ -6,7 +6,6 @@ import Data.List(intercalate)
 
 
 -- ПАРАМЕТРЫ
-
 radius :: Float
 radius = 300
 
@@ -17,7 +16,7 @@ nodeR = 45
 labelLiftBase :: Float
 labelLiftBase = 85
 
--- количество шагов для построения кривой Безье
+-- количество шагов для построения кривой
 curveSteps :: Int
 curveSteps = 50
 
@@ -262,7 +261,6 @@ drawTransitionsDKA :: [((State, Char), State)]
 drawTransitionsDKA trans layout =
  Pictures (map draw grouped)
  where
-
   grouped = foldr collect [] trans
 
   collect ((f,a),t) acc =

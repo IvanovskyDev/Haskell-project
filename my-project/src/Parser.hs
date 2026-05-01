@@ -20,7 +20,7 @@ parseLine line
     | all isSpace line = Right []
     | length ws/=3   = 
           Left "строка должна содержать ровно три элемента"
-    | otherwise        = build ws
+    | otherwise = build ws
     where
         ws = words line
 
