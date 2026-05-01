@@ -1,0 +1,12 @@
+Нетерминалы: H,A,B,C,D,E,F,G,S
+Терминалы: a,b
+
+H=Da|Eb;
+A=Ha|Ca;
+B=Hb;
+C=Aa;
+D=Ab|Gb;
+E=Ba|Fb;
+F=Bb|Ga;
+G=Cb|Fa;
+S=Db|Ea|ε;

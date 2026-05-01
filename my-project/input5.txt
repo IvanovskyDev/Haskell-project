@@ -1,4 +1,10 @@
 H a A
-H a B
-A b S
-B b S
+H eps B
+A b C
+B c D
+C eps E
+D a E
+E b F
+F a S
+F eps H
+C d S
